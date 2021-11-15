@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | This module provides types for hiding the
 -- 'ByteTypes.Data.Direction.Direction' on 'NetBytes'.
 --
@@ -11,7 +13,7 @@
 -- While the witnesses allows us to recover the types at will (and we can
 -- \"forget\" the direction tag by dropping to 'ByteTypes.Data.Bytes'),
 -- we are much more limited in what we can do. For example, we lose instances
--- like 'Applicative', 'ByteTypes.Class.Math.Algebra.Group'.
+-- like 'Applicative', 'Simple.Algebra.Group'.
 module ByteTypes.Data.Network.SomeNetDir.Internal
   ( SomeNetDir (..),
     hideNetDir,
@@ -21,8 +23,6 @@ module ByteTypes.Data.Network.SomeNetDir.Internal
 where
 
 import ByteTypes.Class.Conversion (Conversion (..))
-import ByteTypes.Class.Math.Algebra.Field (Field (..))
-import ByteTypes.Class.Math.Literal (NumLiteral (..))
 import ByteTypes.Class.Normalize (Normalize (..))
 import ByteTypes.Class.PrettyPrint (PrettyPrint (..))
 import ByteTypes.Data.Direction (SDirection (..), SingDirection (..))
@@ -31,6 +31,8 @@ import ByteTypes.Data.Network.NetBytes.Internal (NetBytes, SomeNetSize (..))
 import ByteTypes.Data.Size (SSize (..), SingSize (..), Size (..))
 import ByteTypes.Data.Size qualified as Size
 import Data.Kind (Type)
+import Numeric.Algebra.Field (Field)
+import Numeric.Class.Literal (NumLiteral (..))
 
 -- | Wrapper for 'NetBytes', existentially quantifying the direction.
 -- This is useful when a function does not know a priori what
@@ -49,7 +51,7 @@ import Data.Kind (Type)
 --
 -- We deliberately do not provide instances for SomeX classes that could be
 -- used to combine arbitrary 'SomeNetDir's (e.g. 'Applicative',
--- 'ByteTypes.Class.Math.Algebra.Group'), as that would defeat the purpose of
+-- 'Simple.Algebra.Group'), as that would defeat the purpose of
 -- enforcing the distinction between upload and downloaded bytes.
 type SomeNetDir :: Size -> Type -> Type
 data SomeNetDir s n where

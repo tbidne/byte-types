@@ -5,14 +5,19 @@ module ByteTypes.Props.Verify.Normalize
   )
 where
 
-import ByteTypes.Class.Math.Algebra.Group (Group (..), NonZero)
-import ByteTypes.Class.Math.Algebra.Module (Module (..))
-import ByteTypes.Class.Math.Algebra.VectorSpace (VectorSpace (..))
 import ByteTypes.Class.Normalize (Normalize (..))
 import ByteTypes.Data.Size (Size (..))
 import ByteTypes.Utils ((<=>))
 import Hedgehog (PropertyT, (===))
 import Hedgehog qualified as H
+import Numeric.Algebra
+  ( AGroup (..),
+    AMonoid (..),
+    ASemigroup (..),
+    Module (..),
+    VectorSpace (..),
+  )
+import Numeric.Data.NonZero (NonZero (..))
 
 -- | Verifies that the parameter numberic value is normalized, taking care
 -- to account for special 'B' and 'P' rules.
@@ -30,9 +35,9 @@ isNormalized Y x = do
 isNormalized _ x
   | x == 0 = pure ()
   | otherwise = do
-    H.footnoteShow x
-    H.assert $ x >= 1
-    H.assert $ x < 1_000
+      H.footnoteShow x
+      H.assert $ x >= 1
+      H.assert $ x < 1_000
 
 -- | Verifies that normalize is a homomorphism. In particular, that it
 -- is order-preserving and respects the group/module/vector space
@@ -56,8 +61,7 @@ normalizeLaws x y k nz = do
   H.assert $ x <= y <=> normalize x <= normalize y
 
   -- respects group structure
-  (gid :: n) === normalize (gid :: n)
-  ginv x === normalize (ginv x)
+  (zero :: n) === normalize (zero :: n)
   normalize (x .+. y) === normalize x .+. normalize y
   normalize (x .-. y) === normalize x .-. normalize y
 

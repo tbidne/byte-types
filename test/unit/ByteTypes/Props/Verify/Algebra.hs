@@ -11,14 +11,23 @@ module ByteTypes.Props.Verify.Algebra
   )
 where
 
-import ByteTypes.Class.Math.Algebra.Field (Field (..))
-import ByteTypes.Class.Math.Algebra.Group (Group (..), NonZero (..), unNonZero)
-import ByteTypes.Class.Math.Algebra.Module (Module (..))
-import ByteTypes.Class.Math.Algebra.Ring (Ring (..))
-import ByteTypes.Class.Math.Algebra.VectorSpace (VectorSpace (..))
 import ByteTypes.Utils ((<=>), (==>))
 import Hedgehog (PropertyT, (===))
 import Hedgehog qualified as H
+import Numeric.Algebra
+  ( AGroup (..),
+    AMonoid (..),
+    ASemigroup (..),
+    Field,
+    MGroup (..),
+    MMonoid (..),
+    MSemigroup (..),
+    Module (..),
+    Ring,
+    VectorSpace (..),
+  )
+import Numeric.Algebra qualified as Algebra
+import Numeric.Data.NonZero (NonZero (..))
 
 -- | Verifies 'Eq' laws for 'BytesEq'.
 eqLaws :: (Eq a, Show a) => a -> a -> a -> PropertyT IO ()
@@ -47,21 +56,18 @@ ordLaws x y z = do
   H.assert $ x < y <=> y > x
 
 -- | Verify 'Group' laws.
-groupLaws :: (Group a, Show a) => a -> a -> a -> PropertyT IO ()
+groupLaws :: (AGroup a, Show a) => a -> a -> a -> PropertyT IO ()
 groupLaws x y z = do
   H.annotateShow x
   H.annotateShow y
   H.annotateShow z
   -- identity
-  x === x .+. gid
-  x === gid .+. x
+  x === x .+. zero
+  x === zero .+. x
   -- associativity
   H.annotateShow (x .+. y, (x .+. y) .+. z)
   H.annotateShow (y .+. z, x .+. (y .+. z))
   (x .+. y) .+. z === x .+. (y .+. z)
-  -- inverses
-  gid === x .+. ginv x
-  gid === ginv x .+. x
 
 -- | Verify 'Ring' laws.
 ringLaws :: (Ring a, Show a) => a -> a -> a -> PropertyT IO ()
@@ -72,8 +78,8 @@ ringLaws x y z = do
   -- associativity
   (x .*. y) .*. z === x .*. (y .*. z)
   -- identity
-  x === x .*. rid
-  x === rid .*. x
+  x === x .*. one
+  x === one .*. x
   -- distributivity
   x .*. (y .+. z) === (x .*. y) .+. (x .*. z)
   (y .+. z) .*. x === (y .*. x) .+. (z .*. x)
@@ -83,8 +89,7 @@ fieldLaws :: (Field a, Show a) => NonZero a -> a -> a -> PropertyT IO ()
 fieldLaws x'@(MkNonZero x) y z = do
   ringLaws x y z
   -- identity
-  rid === x .*. unNonZero (finv x')
-  rid === unNonZero (finv x') .*. x
+  one === x .%. x'
 
 -- | Verify 'Module' laws.
 moduleLaws :: forall m r. (Module m r, Show m) => m -> m -> r -> r -> PropertyT IO ()
@@ -100,8 +105,8 @@ moduleLaws x y k l = do
   (k .*. l) *. x === l *. (k *. x)
 
   -- identity
-  x === rid @r *. x
-  x === x .* rid @r
+  x === one @r *. x
+  x === x .* one @r
 
 -- | Verify 'VectorSpace' laws.
 vectorSpaceLaws ::
@@ -113,7 +118,9 @@ vectorSpaceLaws ::
   PropertyT IO ()
 vectorSpaceLaws x y k'@(MkNonZero k) l'@(MkNonZero l) = do
   moduleLaws x y k l
-  moduleLaws x y kInv lInv
-  where
-    kInv = unNonZero $ finv k'
-    lInv = unNonZero $ finv l'
+
+  x .% Algebra.unsafeAMonoidNonZero (k .*. l) === (x .% k') .% l'
+
+  -- identity
+  x === one *. x
+  x === x .* one

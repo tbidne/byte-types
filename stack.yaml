@@ -2,3 +2,6 @@ resolver:
   url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/12.yaml
 packages:
 - .
+extra-deps:
+- git: https://github.com/tbidne/algebra-simple.git
+  commit: acc79c140fc3cf3530337a2d4ddc0f2cc6c2ef08

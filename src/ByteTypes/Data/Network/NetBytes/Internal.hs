@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | Provides the core alternative to 'ByteTypes.Data.Bytes', for when there
 -- is a need to distinguish between downloaded and uploaded bytes.
 --
@@ -29,12 +31,6 @@ module ByteTypes.Data.Network.NetBytes.Internal
 where
 
 import ByteTypes.Class.Conversion (Conversion (..))
-import ByteTypes.Class.Math.Algebra.Field (Field (..))
-import ByteTypes.Class.Math.Algebra.Group (Group (..))
-import ByteTypes.Class.Math.Algebra.Module (Module (..))
-import ByteTypes.Class.Math.Algebra.Ring (Ring (..))
-import ByteTypes.Class.Math.Algebra.VectorSpace (VectorSpace (..))
-import ByteTypes.Class.Math.Literal (NumLiteral (..))
 import ByteTypes.Class.Normalize (Normalize (..))
 import ByteTypes.Class.PrettyPrint (PrettyPrint (..))
 import ByteTypes.Data.Bytes.Internal (Bytes (..), SomeSize (..))
@@ -48,6 +44,16 @@ import ByteTypes.Data.Size qualified as Size
 import Control.Applicative (liftA2)
 import Data.Kind (Type)
 import GHC.Show qualified as Show
+import Numeric.Algebra
+  ( AGroup (..),
+    AMonoid (..),
+    ASemigroup (..),
+    Field,
+    Module (..),
+    Ring,
+    VectorSpace (..),
+  )
+import Numeric.Class.Literal (NumLiteral (..))
 
 -- | Wrapper around the 'Bytes' type that adds the 'Direction' tag.
 type NetBytes :: Direction -> Size -> Type -> Type
@@ -100,12 +106,15 @@ instance Eq n => Eq (NetBytes d s n) where
 instance Ord n => Ord (NetBytes d s n) where
   MkNetBytes x <= MkNetBytes y = x <= y
 
-instance Group n => Group (NetBytes d s n) where
+instance ASemigroup n => ASemigroup (NetBytes d s n) where
   (.+.) = liftA2 (.+.)
+
+instance AMonoid n => AMonoid (NetBytes d s n) where
+  zero = MkNetBytes zero
+
+instance AGroup n => AGroup (NetBytes d s n) where
   (.-.) = liftA2 (.-.)
-  gid = MkNetBytes gid
-  ginv = fmap ginv
-  gabs = fmap gabs
+  aabs = fmap aabs
 
 instance Ring n => Module (NetBytes d s n) n where
   MkNetBytes x .* k = MkNetBytes $ x .* k
@@ -157,8 +166,8 @@ instance
 --   getUpTraffic = do
 --     (bytes, units) <- getUpTrafficRaw
 --     case units of
---       "B" -> MkSomeNetSize SUp $ MkBytes \@B bytes
---       "K" -> MkSomeNetSize SUp $ MkBytes \@K bytes
+--       \"B\" -> MkSomeNetSize SUp $ MkNetBytesP \@B bytes
+--       \"K\" -> MkSomeNetSize SUp $ MkNetBytesP \@K bytes
 --       ...
 -- @
 --
@@ -193,7 +202,7 @@ deriving instance Functor (SomeNetSize d)
 -- takes units into account. For instance,
 --
 -- @
--- MkSomeNetSize SK (MkBytes 1000) == MkSomeNetSize SM (MkBytes 1).
+-- MkSomeNetSize SK (MkNetBytesP 1000) == MkSomeNetSize SM (MkNetBytesP 1).
 -- @
 --
 -- Because we expose the underlying @NetBytes@ in several ways (e.g. 'Show',
@@ -207,8 +216,8 @@ deriving instance Functor (SomeNetSize d)
 -- For instance:
 --
 -- @
--- let x = MkSomeNetSize SK (MkBytes 1000)
--- let y = MkSomeNetSize SM (MkBytes 1)
+-- let x = MkSomeNetSize SK (MkNetBytesP 1000)
+-- let y = MkSomeNetSize SM (MkNetBytesP 1)
 -- x == y
 -- isK x /= isK y
 -- @
@@ -222,12 +231,15 @@ instance (Eq n, Field n, NumLiteral n) => Eq (SomeNetSize d n) where
 instance (Field n, NumLiteral n, Ord n) => Ord (SomeNetSize d n) where
   x <= y = toB x <= toB y
 
-instance (Field n, NumLiteral n, Ord n) => Group (SomeNetSize d n) where
+instance (Field n, NumLiteral n, Ord n) => ASemigroup (SomeNetSize d n) where
   x .+. y = normalize $ toB x .+. toB y
+
+instance (Field n, NumLiteral n, Ord n) => AMonoid (SomeNetSize d n) where
+  zero = MkSomeNetSize SB zero
+
+instance (Field n, NumLiteral n, Ord n) => AGroup (SomeNetSize d n) where
   x .-. y = normalize $ toB x .-. toB y
-  gid = MkSomeNetSize SB gid
-  ginv = fmap ginv
-  gabs = fmap gabs
+  aabs = fmap aabs
 
 instance (Field n, NumLiteral n, Ord n) => Module (SomeNetSize d n) n where
   MkSomeNetSize sz x .* k = MkSomeNetSize sz $ x .* k

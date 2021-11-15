@@ -70,14 +70,6 @@ library
   exposed-modules:
     ByteTypes.Bytes
     ByteTypes.Class.Conversion
-    ByteTypes.Class.Math
-    ByteTypes.Class.Math.Algebra
-    ByteTypes.Class.Math.Algebra.Field
-    ByteTypes.Class.Math.Algebra.Group
-    ByteTypes.Class.Math.Algebra.Module
-    ByteTypes.Class.Math.Algebra.Ring
-    ByteTypes.Class.Math.Algebra.VectorSpace
-    ByteTypes.Class.Math.Literal
     ByteTypes.Class.Normalize
     ByteTypes.Class.PrettyPrint
     ByteTypes.Data.Bytes
@@ -91,7 +83,10 @@ library
     ByteTypes.Data.Size
     ByteTypes.Network
 
-  build-depends:    base ^>=4.14.1.0
+  build-depends:
+    , algebra-simple  ^>=0.1
+    , base            >=4.14.1.0 && <4.17
+
   hs-source-dirs:   src
   default-language: Haskell2010
 
@@ -115,6 +110,7 @@ test-suite unit
     ByteTypes.Utils
 
   build-depends:
+    , algebra-simple
     , base
     , byte-types
     , hedgehog

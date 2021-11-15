@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 -- | Provides typeclasses for convert between byte sizes.
 module ByteTypes.Class.Conversion
@@ -10,11 +11,11 @@ module ByteTypes.Class.Conversion
   )
 where
 
-import ByteTypes.Class.Math.Algebra.Field (Field (..))
-import ByteTypes.Class.Math.Algebra.Group (Group, NonZero, unsafeNonZero)
-import ByteTypes.Class.Math.Algebra.Ring (Ring (..))
-import ByteTypes.Class.Math.Literal (NumLiteral (..))
 import ByteTypes.Data.Size (NextSize, PrevSize, SSize (..), SingSize (..), Size (..))
+import Numeric.Algebra (AMonoid (..), MGroup (..), MSemigroup (..))
+import Numeric.Algebra qualified as Algebra
+import Numeric.Class.Literal (NumLiteral (..))
+import Numeric.Data.NonZero (NonZero (..))
 
 -- | Typeclass for decrementing bytes to the next units.
 class DecSize a where
@@ -47,7 +48,16 @@ class Conversion a where
 -- This is slightly more principled than 'convert', but the higher level
 -- byte types and functions should still be preferred
 -- (e.g. 'ByteTypes.Data.Bytes', 'ByteTypes.Class.Normalize').
-convertWitness :: forall s n. (Field n, NumLiteral n, SingSize s) => Size -> n -> n
+convertWitness ::
+  forall s n.
+  ( AMonoid n,
+    MGroup n,
+    NumLiteral n,
+    SingSize s
+  ) =>
+  Size ->
+  n ->
+  n
 convertWitness toUnits n = case singSize @s of
   SB -> convert B toUnits n
   SK -> convert K toUnits n
@@ -65,61 +75,70 @@ convertWitness toUnits n = case singSize @s of
 -- byte types and functions should be preferred
 -- (e.g. 'ByteTypes.Data.Bytes', 'ByteTypes.Class.Normalize'), but this is
 -- here when it is needed.
-convert :: (Field n, NumLiteral n) => Size -> Size -> n -> n
+convert ::
+  forall n.
+  ( AMonoid n,
+    MGroup n,
+    NumLiteral n
+  ) =>
+  Size ->
+  Size ->
+  n ->
+  n
 convert B B n = n
-convert B K n = n .%. nzFromLit 1_000
-convert B M n = n .%. nzFromLit 1_000_000
-convert B G n = n .%. nzFromLit 1_000_000_000
-convert B T n = n .%. nzFromLit 1_000_000_000_000
-convert B P n = n .%. nzFromLit 1_000_000_000_000_000
-convert B E n = n .%. nzFromLit 1_000_000_000_000_000_000
-convert B Z n = n .%. nzFromLit 1_000_000_000_000_000_000_000
-convert B Y n = n .%. nzFromLit 1_000_000_000_000_000_000_000_000
+convert B K n = n .%. nzFromLit @n 1_000
+convert B M n = n .%. nzFromLit @n 1_000_000
+convert B G n = n .%. nzFromLit @n 1_000_000_000
+convert B T n = n .%. nzFromLit @n 1_000_000_000_000
+convert B P n = n .%. nzFromLit @n 1_000_000_000_000_000
+convert B E n = n .%. nzFromLit @n 1_000_000_000_000_000_000
+convert B Z n = n .%. nzFromLit @n 1_000_000_000_000_000_000_000
+convert B Y n = n .%. nzFromLit @n 1_000_000_000_000_000_000_000_000
 convert K B n = n .*. fromLit 1_000
 convert K K n = n
-convert K M n = n .%. nzFromLit 1_000
-convert K G n = n .%. nzFromLit 1_000_000
-convert K T n = n .%. nzFromLit 1_000_000_000
-convert K P n = n .%. nzFromLit 1_000_000_000_000
-convert K E n = n .%. nzFromLit 1_000_000_000_000_000
-convert K Z n = n .%. nzFromLit 1_000_000_000_000_000_000
-convert K Y n = n .%. nzFromLit 1_000_000_000_000_000_000_000
+convert K M n = n .%. nzFromLit @n 1_000
+convert K G n = n .%. nzFromLit @n 1_000_000
+convert K T n = n .%. nzFromLit @n 1_000_000_000
+convert K P n = n .%. nzFromLit @n 1_000_000_000_000
+convert K E n = n .%. nzFromLit @n 1_000_000_000_000_000
+convert K Z n = n .%. nzFromLit @n 1_000_000_000_000_000_000
+convert K Y n = n .%. nzFromLit @n 1_000_000_000_000_000_000_000
 convert M B n = n .*. fromLit 1_000_000
 convert M K n = n .*. fromLit 1_000
 convert M M n = n
-convert M G n = n .%. nzFromLit 1_000
-convert M T n = n .%. nzFromLit 1_000_000
-convert M P n = n .%. nzFromLit 1_000_000_000
-convert M E n = n .%. nzFromLit 1_000_000_000_000
-convert M Z n = n .%. nzFromLit 1_000_000_000_000_000
-convert M Y n = n .%. nzFromLit 1_000_000_000_000_000_000
+convert M G n = n .%. nzFromLit @n 1_000
+convert M T n = n .%. nzFromLit @n 1_000_000
+convert M P n = n .%. nzFromLit @n 1_000_000_000
+convert M E n = n .%. nzFromLit @n 1_000_000_000_000
+convert M Z n = n .%. nzFromLit @n 1_000_000_000_000_000
+convert M Y n = n .%. nzFromLit @n 1_000_000_000_000_000_000
 convert G B n = n .*. fromLit 1_000_000_000
 convert G K n = n .*. fromLit 1_000_000
 convert G M n = n .*. fromLit 1_000
 convert G G n = n
-convert G T n = n .%. nzFromLit 1_000
-convert G P n = n .%. nzFromLit 1_000_000
-convert G E n = n .%. nzFromLit 1_000_000_000
-convert G Z n = n .%. nzFromLit 1_000_000_000_000
-convert G Y n = n .%. nzFromLit 1_000_000_000_000_000
+convert G T n = n .%. nzFromLit @n 1_000
+convert G P n = n .%. nzFromLit @n 1_000_000
+convert G E n = n .%. nzFromLit @n 1_000_000_000
+convert G Z n = n .%. nzFromLit @n 1_000_000_000_000
+convert G Y n = n .%. nzFromLit @n 1_000_000_000_000_000
 convert T B n = n .*. fromLit 1_000_000_000_000
 convert T K n = n .*. fromLit 1_000_000_000
 convert T M n = n .*. fromLit 1_000_000
 convert T G n = n .*. fromLit 1_000
 convert T T n = n
-convert T P n = n .%. nzFromLit 1_000
-convert T E n = n .%. nzFromLit 1_000_000
-convert T Z n = n .%. nzFromLit 1_000_000_000
-convert T Y n = n .%. nzFromLit 1_000_000_000_000
+convert T P n = n .%. nzFromLit @n 1_000
+convert T E n = n .%. nzFromLit @n 1_000_000
+convert T Z n = n .%. nzFromLit @n 1_000_000_000
+convert T Y n = n .%. nzFromLit @n 1_000_000_000_000
 convert P B n = n .*. fromLit 1_000_000_000_000_000
 convert P K n = n .*. fromLit 1_000_000_000_000
 convert P M n = n .*. fromLit 1_000_000_000
 convert P G n = n .*. fromLit 1_000_000
 convert P T n = n .*. fromLit 1_000
 convert P P n = n
-convert P E n = n .%. nzFromLit 1_000
-convert P Z n = n .%. nzFromLit 1_000_000
-convert P Y n = n .%. nzFromLit 1_000_000_000
+convert P E n = n .%. nzFromLit @n 1_000
+convert P Z n = n .%. nzFromLit @n 1_000_000
+convert P Y n = n .%. nzFromLit @n 1_000_000_000
 convert E B n = n .*. fromLit 1_000_000_000_000_000_000
 convert E K n = n .*. fromLit 1_000_000_000_000_000
 convert E M n = n .*. fromLit 1_000_000_000_000
@@ -127,8 +146,8 @@ convert E G n = n .*. fromLit 1_000_000_000
 convert E T n = n .*. fromLit 1_000_000
 convert E P n = n .*. fromLit 1_000
 convert E E n = n
-convert E Z n = n .%. nzFromLit 1_000
-convert E Y n = n .%. nzFromLit 1_000_000
+convert E Z n = n .%. nzFromLit @n 1_000
+convert E Y n = n .%. nzFromLit @n 1_000_000
 convert Z B n = n .*. fromLit 1_000_000_000_000_000_000_000
 convert Z K n = n .*. fromLit 1_000_000_000_000_000_000
 convert Z M n = n .*. fromLit 1_000_000_000_000_000
@@ -137,7 +156,7 @@ convert Z T n = n .*. fromLit 1_000_000_000
 convert Z P n = n .*. fromLit 1_000_000
 convert Z E n = n .*. fromLit 1_000
 convert Z Z n = n
-convert Z Y n = n .%. nzFromLit 1_000
+convert Z Y n = n .%. nzFromLit @n 1_000
 convert Y B n = n .*. fromLit 1_000_000_000_000_000_000_000_000
 convert Y K n = n .*. fromLit 1_000_000_000_000_000_000_000
 convert Y M n = n .*. fromLit 1_000_000_000_000_000_000
@@ -148,5 +167,5 @@ convert Y E n = n .*. fromLit 1_000_000
 convert Y Z n = n .*. fromLit 1_000
 convert Y Y n = n
 
-nzFromLit :: (Group n, NumLiteral n) => Integer -> NonZero n
-nzFromLit = unsafeNonZero . fromLit
+nzFromLit :: forall n. (AMonoid n, NumLiteral n) => Integer -> NonZero n
+nzFromLit = Algebra.unsafeAMonoidNonZero . fromLit

@@ -25,28 +25,18 @@ module ByteTypes.Network
     module ByteTypes.Class.Conversion,
     module ByteTypes.Class.Normalize,
     module ByteTypes.Class.PrettyPrint,
-
-    -- * Algebraic Functions
-    -- $algebra
-    module ByteTypes.Class.Math.Algebra.Group,
-    module ByteTypes.Class.Math.Algebra.Ring,
-    module ByteTypes.Class.Math.Algebra.Field,
-    module ByteTypes.Class.Math.Algebra.Module,
-    module ByteTypes.Class.Math.Algebra.VectorSpace,
   )
 where
 
 import ByteTypes.Class.Conversion
-import ByteTypes.Class.Math.Algebra.Field
-import ByteTypes.Class.Math.Algebra.Group
-import ByteTypes.Class.Math.Algebra.Module
-import ByteTypes.Class.Math.Algebra.Ring
-import ByteTypes.Class.Math.Algebra.VectorSpace
 import ByteTypes.Class.Normalize
 import ByteTypes.Class.PrettyPrint
 import ByteTypes.Data.Direction
 import ByteTypes.Data.Network
 import ByteTypes.Data.Size
+
+-- $setup
+-- >>> import Simple.Algebra.Data.NonNat
 
 -- $types
 -- The are six main types exported in this module:
@@ -145,10 +135,10 @@ import ByteTypes.Data.Size
 --
 -- >>> let b1 = MkNetBytesP 50000 :: NetBytes 'Down 'M Int
 -- >>> let b2 = hideNetSize (MkNetBytesP 20.40684 :: NetBytes 'Down 'T Float)
--- >>> b1
--- >>> b2
--- MkNetBytesP {unNetBytesP = 50000}
--- MkSomeNetSize ST (MkNetBytesP {unNetBytesP = 20.40684})
+-- >>> pretty b1
+-- >>> pretty b2
+-- "50000 M Down"
+-- "20.41 T Down"
 --
 -- == Normalization
 --
@@ -211,75 +201,27 @@ import ByteTypes.Data.Size
 
 -- $algebra
 --
--- The built-in 'Num' class is abandoned in favor of a custom algebraic
--- hierarchy. This is motivated by a desire to:
+-- The built-in 'Num' class is abandoned in favor of
+-- [simple-algebra](https://github.com/tbidne/simple-algebra/)'s
+-- algebraic hierarchy based on abstract algebra. This is motivated by a
+-- desire to:
 --
 -- 1. Provide a consistent API.
 -- 2. Avoid 'Num'\'s infelicities (e.g. nonsense multiplication,
 --    dangerous 'fromInteger').
 --
--- The hierarchy includes:
---
--- 1. 'Group'
---
---     @
---     class 'Eq' g => 'Group' g where
---       '(.+.)' :: g -> g -> g
---       '(.-.)' :: g -> g -> g
---       'gid' :: g
---       'ginv' :: g -> g
---       'gabs' :: g -> g
---     @
---
--- 2. 'Ring'
---
---     @
---     class 'Group' r => 'Ring' r where
---       '(.*.)' :: r -> r -> r
---       'rid' :: r
---     @
---
--- 3. 'Field'
---
---     @
---     class 'Ring' f => 'Field' f where
---       'finv' :: 'NonZero' f -> 'NonZero' f
---       '(.%.)' :: f -> 'NonZero' f -> f
---     @
---
--- 4. 'Module'
---
---     @
---     class ('Group' m, 'Ring' r) => 'Module' m r | m -> r where
---       '(.*)' :: m -> r -> m
---       '(*.)' :: r -> m -> m
---     @
---
--- 5. 'VectorSpace'
---
---     @
---     class ('Field' k, 'Module' v k) => 'VectorSpace' v k | v -> k where
---       '(.%)' :: v -> 'NonZero' k -> v
---     @
---
--- Built-in numeric types (e.g. 'Integer', 'Double', 'Rational') have been
--- given 'Group', 'Ring', and 'Field' instances with the obvious addition and
--- multiplication. 'Integral' and 'Floating' do not follow the field
--- laws w.r.t. division, but this is a common tradeoff. We take the stance
--- that it is better to provide an expected, useful notion of division
--- (albeit one with known limitations) than none.
---
--- 'NetBytes' and 'SomeNetSize' are both 'Group's compatible with the above.
--- A 'Ring' instance is not provided because multiplication is nonsensical:
+-- 'NetBytes' and 'SomeNetSize' are both 'Group's.
+-- A 'Simple.Algebra.Ring' instance is not provided because multiplication is nonsensical:
 --
 -- \[
 -- x \;\textrm{mb} \times y \;\textrm{mb} = xy \;\textrm{mb}^2.
 -- \]
 --
 -- Fortunately, multiplying bytes by some kind of scalar is both useful /and/
--- has an easy interpretation: Bytes forms a 'Module' over a 'Ring'
--- (resp. 'VectorSpace' over a 'Field'). This allows us to multiply a 'NetBytes'
--- or 'SomeNetSize' by a scalar in a manner consistent with the above API.
+-- has an easy interpretation: Bytes forms a 'Module' over a
+-- 'Simple.Algebra.Ring' (resp. 'VectorSpace' over a 'Simple.Algebra.Field').
+-- This allows us to multiply a 'NetBytes' or 'SomeNetSize' by a scalar in a
+-- manner consistent with the above API.
 --
 -- == Examples
 -- === Addition/Subtraction

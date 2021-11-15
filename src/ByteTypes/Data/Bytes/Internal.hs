@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | This is the main entry point to the library. Provides the types and
 -- classes for working with different byte sizes (e.g. B, K, M ...). See
 -- 'ByteTypes.Data.Network' if there is a need to distinguish between
@@ -27,12 +29,6 @@ import ByteTypes.Class.Conversion
     IncSize (..),
   )
 import ByteTypes.Class.Conversion qualified as Conv
-import ByteTypes.Class.Math.Algebra.Field (Field (..))
-import ByteTypes.Class.Math.Algebra.Group (Group (..), NonZero, unsafeNonZero)
-import ByteTypes.Class.Math.Algebra.Module (Module (..))
-import ByteTypes.Class.Math.Algebra.Ring (Ring (..))
-import ByteTypes.Class.Math.Algebra.VectorSpace (VectorSpace (..))
-import ByteTypes.Class.Math.Literal (NumLiteral (..))
 import ByteTypes.Class.Normalize (Normalize (..))
 import ByteTypes.Class.PrettyPrint (PrettyPrint (..))
 import ByteTypes.Data.Size
@@ -45,6 +41,20 @@ import ByteTypes.Data.Size
 import ByteTypes.Data.Size qualified as Size
 import Control.Applicative (liftA2)
 import Data.Kind (Type)
+import Numeric.Algebra
+  ( AGroup (..),
+    AMonoid (..),
+    ASemigroup (..),
+    Field,
+    MGroup (..),
+    MSemigroup (..),
+    Module (..),
+    Ring,
+    VectorSpace (..),
+  )
+import Numeric.Algebra qualified as Algebra
+import Numeric.Class.Literal (NumLiteral (..))
+import Numeric.Data.NonZero (NonZero (..))
 
 -- | This is the core type for handling type-safe byte operations. It is
 -- intended to be used as a simple wrapper over some numerical type,
@@ -83,12 +93,15 @@ instance Eq n => Eq (Bytes s n) where
 instance Ord n => Ord (Bytes s n) where
   MkBytes x <= MkBytes y = x <= y
 
-instance Group n => Group (Bytes s n) where
+instance ASemigroup n => ASemigroup (Bytes s n) where
   (.+.) = liftA2 (.+.)
+
+instance AMonoid n => AMonoid (Bytes s n) where
+  zero = MkBytes zero
+
+instance AGroup n => AGroup (Bytes s n) where
   (.-.) = liftA2 (.-.)
-  gid = MkBytes gid
-  ginv = fmap ginv
-  gabs = fmap gabs
+  aabs = fmap aabs
 
 instance Ring n => Module (Bytes s n) n where
   MkBytes x .* k = MkBytes $ x .*. k
@@ -96,7 +109,14 @@ instance Ring n => Module (Bytes s n) n where
 instance Field n => VectorSpace (Bytes s n) n where
   MkBytes x .% k = MkBytes $ x .%. k
 
-instance (Field n, NumLiteral n, SingSize s) => Conversion (Bytes s n) where
+instance
+  ( AMonoid n,
+    NumLiteral n,
+    MGroup n,
+    SingSize s
+  ) =>
+  Conversion (Bytes s n)
+  where
   type Converted 'B (Bytes s n) = Bytes 'B n
   type Converted 'K (Bytes s n) = Bytes 'K n
   type Converted 'M (Bytes s n) = Bytes 'M n
@@ -197,7 +217,7 @@ instance (NumLiteral n, Ring n) => DecSize (Bytes 'Z n) where
 instance (NumLiteral n, Ring n) => DecSize (Bytes 'Y n) where
   prev x = resizeBytes $ x .* fromLit @n 1_000
 
-instance (Field n, NumLiteral n, Ord n, SingSize s) => Normalize (Bytes s n) where
+instance forall n s. (Field n, NumLiteral n, Ord n, SingSize s) => Normalize (Bytes s n) where
   type Norm (Bytes s n) = SomeSize n
 
   normalize bytes@(MkBytes x) =
@@ -238,7 +258,7 @@ instance (Field n, NumLiteral n, Ord n, SingSize s) => Normalize (Bytes s n) whe
         | otherwise -> MkSomeSize sz bytes
     where
       sz = bytesToSSize bytes
-      absBytes = gabs x
+      absBytes = aabs x
 
 instance (PrettyPrint n, SingSize s) => PrettyPrint (Bytes s n) where
   pretty (MkBytes x) = case singSize @s of
@@ -262,8 +282,8 @@ instance (PrettyPrint n, SingSize s) => PrettyPrint (Bytes s n) where
 --   getFileSize path = do
 --     (bytes, units) <- getRawFileSize path
 --     case units of
---       "B" -> MkSomeSize SB $ MkBytes bytes
---       "K" -> MkSomeSize SK $ MkBytes bytes
+--       \"B\" -> MkSomeSize SB $ MkBytes bytes
+--       \"K\" -> MkSomeSize SK $ MkBytes bytes
 --       ...
 -- @
 --
@@ -334,12 +354,15 @@ instance (Eq n, Field n, NumLiteral n) => Eq (SomeSize n) where
 instance (Field n, NumLiteral n, Ord n) => Ord (SomeSize n) where
   x <= y = toB x <= toB y
 
-instance (Field n, NumLiteral n, Ord n) => Group (SomeSize n) where
+instance (Field n, NumLiteral n, Ord n) => ASemigroup (SomeSize n) where
   x .+. y = normalize $ toB x .+. toB y
+
+instance (Field n, NumLiteral n, Ord n) => AMonoid (SomeSize n) where
+  zero = MkSomeSize SB zero
+
+instance (Field n, NumLiteral n, Ord n) => AGroup (SomeSize n) where
   x .-. y = normalize $ toB x .-. toB y
-  gid = MkSomeSize SB gid
-  ginv = fmap ginv
-  gabs = fmap gabs
+  aabs = fmap aabs
 
 instance (Field n, NumLiteral n, Ord n) => Module (SomeSize n) n where
   MkSomeSize sz x .* k = MkSomeSize sz $ x .* k
@@ -375,5 +398,5 @@ instance (Field n, NumLiteral n, Ord n) => Normalize (SomeSize n) where
 instance PrettyPrint n => PrettyPrint (SomeSize n) where
   pretty (MkSomeSize sz b) = Size.withSingSize sz $ pretty b
 
-nzFromLit :: (Group n, NumLiteral n) => Integer -> NonZero n
-nzFromLit = unsafeNonZero . fromLit
+nzFromLit :: forall n. (AMonoid n, NumLiteral n) => Integer -> NonZero n
+nzFromLit = Algebra.unsafeAMonoidNonZero . fromLit

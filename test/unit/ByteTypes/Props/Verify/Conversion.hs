@@ -15,12 +15,12 @@ module ByteTypes.Props.Verify.Conversion
   )
 where
 
-import ByteTypes.Class.Math.Algebra.Field (Field (..))
-import ByteTypes.Class.Math.Algebra.Group (Group, NonZero, unsafeNonZero)
-import ByteTypes.Class.Math.Algebra.Ring (Ring (..))
-import ByteTypes.Class.Math.Literal (NumLiteral (..))
 import Hedgehog (PropertyT, (===))
 import Hedgehog qualified as H
+import Numeric.Algebra (Field, MGroup (..), MSemigroup (..))
+import Numeric.Algebra qualified as Algebra
+import Numeric.Class.Literal (NumLiteral (..))
+import Numeric.Data.NonZero (NonZero)
 
 data ExpectedConvs n = MkExpectedConvs
   { bExp :: n -> n,
@@ -208,5 +208,5 @@ convertAndTest convFn original result label = do
   H.footnote label
   expected === result
 
-nzFromLit :: (Group n, NumLiteral n) => Integer -> NonZero n
-nzFromLit = unsafeNonZero . fromLit
+nzFromLit :: (Field n, NumLiteral n) => Integer -> NonZero n
+nzFromLit = Algebra.unsafeAMonoidNonZero . fromLit

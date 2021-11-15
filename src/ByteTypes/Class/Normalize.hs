@@ -29,7 +29,7 @@ where
 -- \[ x = y \implies f(x) = f(y). \]
 --
 -- This is certainly true for all the usual mathematical operations we would
--- normally use, e.g., 'ByteTypes.Class.Math.Algebra.Group' addition,
+-- normally use, e.g., 'Simple.Algebra.Group' addition,
 -- 'ByteTypes.Class.Algebra.Module' scalar multiplication. On
 -- the other hand, any functions that inspect the underlying numeric value or
 -- Bytes types could easily break this law. As such they should be treated

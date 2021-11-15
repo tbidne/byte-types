@@ -12,12 +12,13 @@ module ByteTypes.Props.Data.Size.Generators
   )
 where
 
-import ByteTypes.Class.Math.Algebra.Group (NonZero, unsafeNonZero)
 import ByteTypes.Data.Size (Size (..))
 import Data.Ratio ((%))
 import Hedgehog (Gen)
 import Hedgehog.Gen qualified as HGen
 import Hedgehog.Range qualified as HRange
+import Numeric.Algebra qualified as Algebra
+import Numeric.Data.NonZero (NonZero)
 
 -- | Uniform distribution over 'Size'.
 genSize :: Gen Size
@@ -33,7 +34,7 @@ genD = (% 1) <$> HGen.integral (HRange.linearFrom origin lower upper)
 
 -- | Generates a linear distribution from 0 to 1,000,000,000,000,000.
 genNonZero :: Gen (NonZero Rational)
-genNonZero = unsafeNonZero . (% 1) <$> HGen.integral (HRange.linearFrom origin lower upper)
+genNonZero = Algebra.unsafeAMonoidNonZero . (% 1) <$> HGen.integral (HRange.linearFrom origin lower upper)
   where
     origin = 500_000_000_000_000
     lower = 1
