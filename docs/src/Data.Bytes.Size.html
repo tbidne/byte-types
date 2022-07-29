@@ -1,0 +1,605 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | Provides the 'Size' type and typeclasses for converting</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- between units.</span><span>
+</span><span id="line-5"></span><span class="hs-comment">--</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Bytes.Size</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Size Tags</span></span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier">Size</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier">SSize</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier">SingSize</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Data.Bytes.Size.html#withSingSize"><span class="hs-identifier">withSingSize</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier">ssizeToSize</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Sized Types</span></span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Data.Bytes.Size.html#Sized"><span class="hs-identifier">Sized</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Type Families for Relating Tags</span></span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier">NextSize</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier">PrevSize</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Control.Applicative.html"><span class="hs-identifier">Control.Applicative</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Base.html#%3C%7C%3E"><span class="hs-operator">(&lt;|&gt;)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Bytes.Class.Parser.html"><span class="hs-identifier">Data.Bytes.Class.Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Bytes.Class.Parser.html#Parser"><span class="hs-identifier">Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Kind.html"><span class="hs-identifier">Data.Kind</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/ghc-prim-0.8.0/src/GHC.Types.html#Constraint"><span class="hs-identifier">Constraint</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/ghc-prim-0.8.0/src/GHC.Types.html#Type"><span class="hs-identifier">Type</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html"><span class="hs-identifier">Data.Type.Equality</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#TestEquality"><span class="hs-identifier">TestEquality</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#%3A~%3A"><span class="hs-operator">(:~:)</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.TypeLits.html"><span class="hs-identifier">GHC.TypeLits</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.TypeLits.html#ErrorMessage"><span class="hs-identifier">ErrorMessage</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.TypeLits.html#TypeError"><span class="hs-identifier">TypeError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/hplgxg7m1qr3kqddbdwiwy39g3aqspfl-megaparsec-9.2.1-doc/share/doc/megaparsec-9.2.1/html/src/Text.Megaparsec.html"><span class="hs-identifier">Text.Megaparsec</span></a></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">MP</span></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="file:///nix/store/hplgxg7m1qr3kqddbdwiwy39g3aqspfl-megaparsec-9.2.1-doc/share/doc/megaparsec-9.2.1/html/src/Text.Megaparsec.Char.html"><span class="hs-identifier">Text.Megaparsec.Char</span></a></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">MPC</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- | Byte units.</span><span>
+</span><span id="line-33"></span><span class="hs-comment">--</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">type</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/ghc-prim-0.8.0/src/GHC.Types.html#Type"><span class="hs-identifier hs-type">Type</span></a></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">data</span><span> </span><span id="Size"><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-var">Size</span></a></span></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-comment">-- | Bytes</span><span>
+</span><span id="line-38"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-40"></span><span>    </span><span id="B"><span class="annot"><a href="Data.Bytes.Size.html#B"><span class="hs-identifier hs-var">B</span></a></span></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Kilobytes</span><span>
+</span><span id="line-42"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-44"></span><span>    </span><span id="K"><span class="annot"><a href="Data.Bytes.Size.html#K"><span class="hs-identifier hs-var">K</span></a></span></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Megabytes</span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-48"></span><span>    </span><span id="M"><span class="annot"><a href="Data.Bytes.Size.html#M"><span class="hs-identifier hs-var">M</span></a></span></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Gigabytes</span><span>
+</span><span id="line-50"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-52"></span><span>    </span><span id="G"><span class="annot"><a href="Data.Bytes.Size.html#G"><span class="hs-identifier hs-var">G</span></a></span></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Terabytes</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-55"></span><span>    </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-56"></span><span>    </span><span id="T"><span class="annot"><a href="Data.Bytes.Size.html#T"><span class="hs-identifier hs-var">T</span></a></span></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Petabytes</span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-59"></span><span>    </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-60"></span><span>    </span><span id="P"><span class="annot"><a href="Data.Bytes.Size.html#P"><span class="hs-identifier hs-var">P</span></a></span></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Exabytes</span><span>
+</span><span id="line-62"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-63"></span><span>    </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-64"></span><span>    </span><span id="E"><span class="annot"><a href="Data.Bytes.Size.html#E"><span class="hs-identifier hs-var">E</span></a></span></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Zettabytes</span><span>
+</span><span id="line-66"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-67"></span><span>    </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-68"></span><span>    </span><span id="Z"><span class="annot"><a href="Data.Bytes.Size.html#Z"><span class="hs-identifier hs-var">Z</span></a></span></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="hs-comment">-- | Yottabytes</span><span>
+</span><span id="line-70"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-71"></span><span>    </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-72"></span><span>    </span><span id="Y"><span class="annot"><a href="Data.Bytes.Size.html#Y"><span class="hs-identifier hs-var">Y</span></a></span></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span>
+</span><span id="line-74"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-75"></span><span>      </span><span id="local-6989586621679078093"><span id="local-6989586621679078095"><span class="annot"><span class="annottext">Size -&gt; Size -&gt; Bool
+(Size -&gt; Size -&gt; Bool) -&gt; (Size -&gt; Size -&gt; Bool) -&gt; Eq Size
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Size -&gt; Size -&gt; Bool
+$c/= :: Size -&gt; Size -&gt; Bool
+== :: Size -&gt; Size -&gt; Bool
+$c== :: Size -&gt; Size -&gt; Bool
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/ghc-prim-0.8.0/src/GHC.Classes.html#Eq"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span>
+</span><span id="line-76"></span><span>      </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-77"></span><span>      </span><span id="local-6989586621679078073"><span id="local-6989586621679078075"><span id="local-6989586621679078078"><span id="local-6989586621679078081"><span id="local-6989586621679078084"><span id="local-6989586621679078086"><span id="local-6989586621679078088"><span class="annot"><span class="annottext">Eq Size
+Eq Size
+-&gt; (Size -&gt; Size -&gt; Ordering)
+-&gt; (Size -&gt; Size -&gt; Bool)
+-&gt; (Size -&gt; Size -&gt; Bool)
+-&gt; (Size -&gt; Size -&gt; Bool)
+-&gt; (Size -&gt; Size -&gt; Bool)
+-&gt; (Size -&gt; Size -&gt; Size)
+-&gt; (Size -&gt; Size -&gt; Size)
+-&gt; Ord Size
+Size -&gt; Size -&gt; Bool
+Size -&gt; Size -&gt; Ordering
+Size -&gt; Size -&gt; Size
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Size -&gt; Size -&gt; Size
+$cmin :: Size -&gt; Size -&gt; Size
+max :: Size -&gt; Size -&gt; Size
+$cmax :: Size -&gt; Size -&gt; Size
+&gt;= :: Size -&gt; Size -&gt; Bool
+$c&gt;= :: Size -&gt; Size -&gt; Bool
+&gt; :: Size -&gt; Size -&gt; Bool
+$c&gt; :: Size -&gt; Size -&gt; Bool
+&lt;= :: Size -&gt; Size -&gt; Bool
+$c&lt;= :: Size -&gt; Size -&gt; Bool
+&lt; :: Size -&gt; Size -&gt; Bool
+$c&lt; :: Size -&gt; Size -&gt; Bool
+compare :: Size -&gt; Size -&gt; Ordering
+$ccompare :: Size -&gt; Size -&gt; Ordering
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/ghc-prim-0.8.0/src/GHC.Classes.html#Ord"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></a></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span>
+</span><span id="line-78"></span><span>      </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-79"></span><span>      </span><span id="local-6989586621679078066"><span id="local-6989586621679078068"><span id="local-6989586621679078070"><span class="annot"><span class="annottext">Int -&gt; Size -&gt; ShowS
+[Size] -&gt; ShowS
+Size -&gt; String
+(Int -&gt; Size -&gt; ShowS)
+-&gt; (Size -&gt; String) -&gt; ([Size] -&gt; ShowS) -&gt; Show Size
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Size] -&gt; ShowS
+$cshowList :: [Size] -&gt; ShowS
+show :: Size -&gt; String
+$cshow :: Size -&gt; String
+showsPrec :: Int -&gt; Size -&gt; ShowS
+$cshowsPrec :: Int -&gt; Size -&gt; ShowS
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Show.html#Show"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></a></span></span></span></span><span>
+</span><span id="line-80"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-83"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Class.Parser.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-84"></span><span>  </span><span id="local-6989586621679078008"><span class="annot"><span class="annottext">parser :: Parsec Void Text Size
+</span><a href="Data.Bytes.Class.Parser.html#parser"><span class="hs-identifier hs-var hs-var hs-var hs-var">parser</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-85"></span><span>    </span><span class="annot"><span class="annottext">[Parsec Void Text Size] -&gt; Parsec Void Text Size
+forall (f :: * -&gt; *) (m :: * -&gt; *) a.
+(Foldable f, Alternative m) =&gt;
+f (m a) -&gt; m a
+</span><a href="file:///nix/store/8dpwjyd5girlf9zvhsqjczy4s5ahc429-parser-combinators-1.3.0-doc/share/doc/parser-combinators-1.3.0/html/src/Control.Applicative.Combinators.html#choice"><span class="hs-identifier hs-var">MP.choice</span></a></span><span>
+</span><span id="line-86"></span><span>      </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Parsec Void Text Size
+</span><a href="#local-6989586621679078005"><span class="hs-identifier hs-var">parseB</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-87"></span><span>        </span><span class="annot"><span class="annottext">Size -&gt; Char -&gt; Tokens Text -&gt; Parsec Void Text Size
+forall {s} {e} {f :: * -&gt; *} {b}.
+(Token s ~ Char, MonadParsec e s f, FoldCase (Tokens s),
+ IsString (Tokens s)) =&gt;
+b -&gt; Char -&gt; Tokens s -&gt; f b
+</span><a href="#local-6989586621679078004"><span class="hs-identifier hs-var">parseU</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#K"><span class="hs-identifier hs-var">K</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'k'</span></span><span> </span><span class="annot"><span class="annottext">Tokens Text
+</span><span class="hs-string">&quot;ilobytes&quot;</span></span><span class="hs-special">,</span><span>
+</span><span id="line-88"></span><span>        </span><span class="annot"><span class="annottext">Size -&gt; Char -&gt; Tokens Text -&gt; Parsec Void Text Size
+forall {s} {e} {f :: * -&gt; *} {b}.
+(Token s ~ Char, MonadParsec e s f, FoldCase (Tokens s),
+ IsString (Tokens s)) =&gt;
+b -&gt; Char -&gt; Tokens s -&gt; f b
+</span><a href="#local-6989586621679078004"><span class="hs-identifier hs-var">parseU</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#M"><span class="hs-identifier hs-var">M</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'m'</span></span><span> </span><span class="annot"><span class="annottext">Tokens Text
+</span><span class="hs-string">&quot;egabytes&quot;</span></span><span class="hs-special">,</span><span>
+</span><span id="line-89"></span><span>        </span><span class="annot"><span class="annottext">Size -&gt; Char -&gt; Tokens Text -&gt; Parsec Void Text Size
+forall {s} {e} {f :: * -&gt; *} {b}.
+(Token s ~ Char, MonadParsec e s f, FoldCase (Tokens s),
+ IsString (Tokens s)) =&gt;
+b -&gt; Char -&gt; Tokens s -&gt; f b
+</span><a href="#local-6989586621679078004"><span class="hs-identifier hs-var">parseU</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#G"><span class="hs-identifier hs-var">G</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'g'</span></span><span> </span><span class="annot"><span class="annottext">Tokens Text
+</span><span class="hs-string">&quot;igabytes&quot;</span></span><span class="hs-special">,</span><span>
+</span><span id="line-90"></span><span>        </span><span class="annot"><span class="annottext">Size -&gt; Char -&gt; Tokens Text -&gt; Parsec Void Text Size
+forall {s} {e} {f :: * -&gt; *} {b}.
+(Token s ~ Char, MonadParsec e s f, FoldCase (Tokens s),
+ IsString (Tokens s)) =&gt;
+b -&gt; Char -&gt; Tokens s -&gt; f b
+</span><a href="#local-6989586621679078004"><span class="hs-identifier hs-var">parseU</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#T"><span class="hs-identifier hs-var">T</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'t'</span></span><span> </span><span class="annot"><span class="annottext">Tokens Text
+</span><span class="hs-string">&quot;erabytes&quot;</span></span><span class="hs-special">,</span><span>
+</span><span id="line-91"></span><span>        </span><span class="annot"><span class="annottext">Size -&gt; Char -&gt; Tokens Text -&gt; Parsec Void Text Size
+forall {s} {e} {f :: * -&gt; *} {b}.
+(Token s ~ Char, MonadParsec e s f, FoldCase (Tokens s),
+ IsString (Tokens s)) =&gt;
+b -&gt; Char -&gt; Tokens s -&gt; f b
+</span><a href="#local-6989586621679078004"><span class="hs-identifier hs-var">parseU</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#P"><span class="hs-identifier hs-var">P</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'p'</span></span><span> </span><span class="annot"><span class="annottext">Tokens Text
+</span><span class="hs-string">&quot;etabytes&quot;</span></span><span class="hs-special">,</span><span>
+</span><span id="line-92"></span><span>        </span><span class="annot"><span class="annottext">Size -&gt; Char -&gt; Tokens Text -&gt; Parsec Void Text Size
+forall {s} {e} {f :: * -&gt; *} {b}.
+(Token s ~ Char, MonadParsec e s f, FoldCase (Tokens s),
+ IsString (Tokens s)) =&gt;
+b -&gt; Char -&gt; Tokens s -&gt; f b
+</span><a href="#local-6989586621679078004"><span class="hs-identifier hs-var">parseU</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#E"><span class="hs-identifier hs-var">E</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'e'</span></span><span> </span><span class="annot"><span class="annottext">Tokens Text
+</span><span class="hs-string">&quot;xabytes&quot;</span></span><span class="hs-special">,</span><span>
+</span><span id="line-93"></span><span>        </span><span class="annot"><span class="annottext">Size -&gt; Char -&gt; Tokens Text -&gt; Parsec Void Text Size
+forall {s} {e} {f :: * -&gt; *} {b}.
+(Token s ~ Char, MonadParsec e s f, FoldCase (Tokens s),
+ IsString (Tokens s)) =&gt;
+b -&gt; Char -&gt; Tokens s -&gt; f b
+</span><a href="#local-6989586621679078004"><span class="hs-identifier hs-var">parseU</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#Z"><span class="hs-identifier hs-var">Z</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'z'</span></span><span> </span><span class="annot"><span class="annottext">Tokens Text
+</span><span class="hs-string">&quot;ettabytes&quot;</span></span><span class="hs-special">,</span><span>
+</span><span id="line-94"></span><span>        </span><span class="annot"><span class="annottext">Size -&gt; Char -&gt; Tokens Text -&gt; Parsec Void Text Size
+forall {s} {e} {f :: * -&gt; *} {b}.
+(Token s ~ Char, MonadParsec e s f, FoldCase (Tokens s),
+ IsString (Tokens s)) =&gt;
+b -&gt; Char -&gt; Tokens s -&gt; f b
+</span><a href="#local-6989586621679078004"><span class="hs-identifier hs-var">parseU</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#Y"><span class="hs-identifier hs-var">Y</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'y'</span></span><span> </span><span class="annot"><span class="annottext">Tokens Text
+</span><span class="hs-string">&quot;ottabytes&quot;</span></span><span>
+</span><span id="line-95"></span><span>      </span><span class="hs-special">]</span><span>
+</span><span id="line-96"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-97"></span><span>      </span><span id="local-6989586621679078005"><span class="annot"><span class="annottext">parseB :: Parsec Void Text Size
+</span><a href="#local-6989586621679078005"><span class="hs-identifier hs-var hs-var">parseB</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-98"></span><span>        </span><span class="annot"><span class="annottext">Token Text
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Token Text -&gt; ParsecT Void Text Identity (Token Text)
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, Token s ~ Char) =&gt;
+Token s -&gt; m (Token s)
+</span><a href="file:///nix/store/hplgxg7m1qr3kqddbdwiwy39g3aqspfl-megaparsec-9.2.1-doc/share/doc/megaparsec-9.2.1/html/src/Text.Megaparsec.Char.html#char%27"><span class="hs-identifier hs-var">MPC.char'</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+Token Text
+</span><span class="hs-char">'b'</span></span><span>
+</span><span id="line-99"></span><span>        </span><span class="annot"><span class="annottext">Maybe (Tokens Text)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity (Tokens Text)
+-&gt; ParsecT Void Text Identity (Maybe (Tokens Text))
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f (Maybe a)
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Control.Applicative.html#optional"><span class="hs-identifier hs-var">MP.optional</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Tokens Text -&gt; ParsecT Void Text Identity (Tokens Text)
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, FoldCase (Tokens s)) =&gt;
+Tokens s -&gt; m (Tokens s)
+</span><a href="file:///nix/store/hplgxg7m1qr3kqddbdwiwy39g3aqspfl-megaparsec-9.2.1-doc/share/doc/megaparsec-9.2.1/html/src/Text.Megaparsec.Common.html#string%27"><span class="hs-identifier hs-var">MPC.string'</span></a></span><span> </span><span class="annot"><span class="annottext">Tokens Text
+</span><span class="hs-string">&quot;ytes&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>        </span><span class="hs-identifier">pure</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#B"><span class="hs-identifier hs-var">B</span></a></span><span>
+</span><span id="line-101"></span><span>      </span><span id="local-6989586621679078004"><span class="annot"><span class="annottext">parseU :: b -&gt; Char -&gt; Tokens s -&gt; f b
+</span><a href="#local-6989586621679078004"><span class="hs-identifier hs-var hs-var">parseU</span></a></span></span><span> </span><span id="local-6989586621679077965"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679077965"><span class="hs-identifier hs-var">u</span></a></span></span><span> </span><span id="local-6989586621679077964"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679077964"><span class="hs-identifier hs-var">ushort</span></a></span></span><span> </span><span id="local-6989586621679077963"><span class="annot"><span class="annottext">Tokens s
+</span><a href="#local-6989586621679077963"><span class="hs-identifier hs-var">ulong</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-102"></span><span>        </span><span class="annot"><span class="annottext">Token s
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Token s -&gt; f (Token s)
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, Token s ~ Char) =&gt;
+Token s -&gt; m (Token s)
+</span><a href="file:///nix/store/hplgxg7m1qr3kqddbdwiwy39g3aqspfl-megaparsec-9.2.1-doc/share/doc/megaparsec-9.2.1/html/src/Text.Megaparsec.Char.html#char%27"><span class="hs-identifier hs-var">MPC.char'</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+Token s
+</span><a href="#local-6989586621679077964"><span class="hs-identifier hs-var">ushort</span></a></span><span>
+</span><span id="line-103"></span><span>        </span><span class="annot"><span class="annottext">Maybe (Tokens s)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">f (Tokens s) -&gt; f (Maybe (Tokens s))
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f (Maybe a)
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Control.Applicative.html#optional"><span class="hs-identifier hs-var">MP.optional</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">f (Tokens s) -&gt; f (Tokens s)
+forall e s (m :: * -&gt; *) a. MonadParsec e s m =&gt; m a -&gt; m a
+</span><a href="file:///nix/store/hplgxg7m1qr3kqddbdwiwy39g3aqspfl-megaparsec-9.2.1-doc/share/doc/megaparsec-9.2.1/html/src/Text.Megaparsec.Class.html#try"><span class="hs-identifier hs-var">MP.try</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Tokens s -&gt; f (Tokens s)
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, FoldCase (Tokens s)) =&gt;
+Tokens s -&gt; m (Tokens s)
+</span><a href="file:///nix/store/hplgxg7m1qr3kqddbdwiwy39g3aqspfl-megaparsec-9.2.1-doc/share/doc/megaparsec-9.2.1/html/src/Text.Megaparsec.Common.html#string%27"><span class="hs-identifier hs-var">MPC.string'</span></a></span><span> </span><span class="annot"><span class="annottext">Tokens s
+</span><span class="hs-string">&quot;b&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">f (Tokens s) -&gt; f (Tokens s) -&gt; f (Tokens s)
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Base.html#%3C%7C%3E"><span class="hs-operator hs-var">&lt;|&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Tokens s -&gt; f (Tokens s)
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, FoldCase (Tokens s)) =&gt;
+Tokens s -&gt; m (Tokens s)
+</span><a href="file:///nix/store/hplgxg7m1qr3kqddbdwiwy39g3aqspfl-megaparsec-9.2.1-doc/share/doc/megaparsec-9.2.1/html/src/Text.Megaparsec.Common.html#string%27"><span class="hs-identifier hs-var">MPC.string'</span></a></span><span> </span><span class="annot"><span class="annottext">Tokens s
+</span><a href="#local-6989586621679077963"><span class="hs-identifier hs-var">ulong</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span>        </span><span class="hs-identifier">pure</span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679077965"><span class="hs-identifier hs-var">u</span></a></span><span>
+</span><span id="line-105"></span><span>  </span><span class="hs-pragma">{-# INLINEABLE</span><span> </span><span class="annot"><a href="Data.Bytes.Class.Parser.html#parser"><span class="hs-pragma hs-type">parser</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-106"></span><span>
+</span><span id="line-107"></span><span class="hs-comment">-- | Singleton for 'Size'.</span><span>
+</span><span id="line-108"></span><span class="hs-comment">--</span><span>
+</span><span id="line-109"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-110"></span><span class="hs-keyword">type</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/ghc-prim-0.8.0/src/GHC.Types.html#Type"><span class="hs-identifier hs-type">Type</span></a></span><span>
+</span><span id="line-111"></span><span class="hs-keyword">data</span><span> </span><span id="SSize"><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-var">SSize</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679077961"><span class="annot"><a href="#local-6989586621679077961"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-112"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-113"></span><span>  </span><span id="SB"><span class="annot"><a href="Data.Bytes.Size.html#SB"><span class="hs-identifier hs-var">SB</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#B"><span class="hs-identifier hs-type">B</span></a></span><span>
+</span><span id="line-114"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-115"></span><span>  </span><span id="SK"><span class="annot"><a href="Data.Bytes.Size.html#SK"><span class="hs-identifier hs-var">SK</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#K"><span class="hs-identifier hs-type">K</span></a></span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-117"></span><span>  </span><span id="SM"><span class="annot"><a href="Data.Bytes.Size.html#SM"><span class="hs-identifier hs-var">SM</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#M"><span class="hs-identifier hs-type">M</span></a></span><span>
+</span><span id="line-118"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-119"></span><span>  </span><span id="SG"><span class="annot"><a href="Data.Bytes.Size.html#SG"><span class="hs-identifier hs-var">SG</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#G"><span class="hs-identifier hs-type">G</span></a></span><span>
+</span><span id="line-120"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-121"></span><span>  </span><span id="ST"><span class="annot"><a href="Data.Bytes.Size.html#ST"><span class="hs-identifier hs-var">ST</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#T"><span class="hs-identifier hs-type">T</span></a></span><span>
+</span><span id="line-122"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-123"></span><span>  </span><span id="SP"><span class="annot"><a href="Data.Bytes.Size.html#SP"><span class="hs-identifier hs-var">SP</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#P"><span class="hs-identifier hs-type">P</span></a></span><span>
+</span><span id="line-124"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-125"></span><span>  </span><span id="SE"><span class="annot"><a href="Data.Bytes.Size.html#SE"><span class="hs-identifier hs-var">SE</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#E"><span class="hs-identifier hs-type">E</span></a></span><span>
+</span><span id="line-126"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-127"></span><span>  </span><span id="SZ"><span class="annot"><a href="Data.Bytes.Size.html#SZ"><span class="hs-identifier hs-var">SZ</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Z"><span class="hs-identifier hs-type">Z</span></a></span><span>
+</span><span id="line-128"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-129"></span><span>  </span><span id="SY"><span class="annot"><a href="Data.Bytes.Size.html#SY"><span class="hs-identifier hs-var">SY</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Y"><span class="hs-identifier hs-type">Y</span></a></span><span>
+</span><span id="line-130"></span><span>
+</span><span id="line-131"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-132"></span><span id="local-6989586621679078143"><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-type">ssizeToSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679078143"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span></span><span>
+</span><span id="line-133"></span><span id="ssizeToSize"><span class="annot"><span class="annottext">ssizeToSize :: forall (s :: Size). SSize s -&gt; Size
+</span><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-var hs-var">ssizeToSize</span></a></span></span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SB"><span class="hs-identifier hs-var">SB</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#B"><span class="hs-identifier hs-var">B</span></a></span><span>
+</span><span id="line-134"></span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-var">ssizeToSize</span></a></span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SK"><span class="hs-identifier hs-var">SK</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#K"><span class="hs-identifier hs-var">K</span></a></span><span>
+</span><span id="line-135"></span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-var">ssizeToSize</span></a></span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SM"><span class="hs-identifier hs-var">SM</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#M"><span class="hs-identifier hs-var">M</span></a></span><span>
+</span><span id="line-136"></span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-var">ssizeToSize</span></a></span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SG"><span class="hs-identifier hs-var">SG</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#G"><span class="hs-identifier hs-var">G</span></a></span><span>
+</span><span id="line-137"></span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-var">ssizeToSize</span></a></span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#ST"><span class="hs-identifier hs-var">ST</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#T"><span class="hs-identifier hs-var">T</span></a></span><span>
+</span><span id="line-138"></span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-var">ssizeToSize</span></a></span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SP"><span class="hs-identifier hs-var">SP</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#P"><span class="hs-identifier hs-var">P</span></a></span><span>
+</span><span id="line-139"></span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-var">ssizeToSize</span></a></span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SE"><span class="hs-identifier hs-var">SE</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#E"><span class="hs-identifier hs-var">E</span></a></span><span>
+</span><span id="line-140"></span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-var">ssizeToSize</span></a></span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SZ"><span class="hs-identifier hs-var">SZ</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#Z"><span class="hs-identifier hs-var">Z</span></a></span><span>
+</span><span id="line-141"></span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-identifier hs-var">ssizeToSize</span></a></span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SY"><span class="hs-identifier hs-var">SY</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Data.Bytes.Size.html#Y"><span class="hs-identifier hs-var">Y</span></a></span><span>
+</span><span id="line-142"></span><span class="hs-pragma">{-# INLINEABLE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#ssizeToSize"><span class="hs-pragma hs-type">ssizeToSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-143"></span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-145"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#TestEquality"><span class="hs-identifier hs-type">TestEquality</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-146"></span><span>  </span><span id="local-6989586621679077939"><span class="annot"><span class="annottext">testEquality :: forall (a :: Size) (b :: Size).
+SSize a -&gt; SSize b -&gt; Maybe (a :~: b)
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#testEquality"><span class="hs-identifier hs-var hs-var hs-var hs-var">testEquality</span></a></span></span><span> </span><span id="local-6989586621679077937"><span class="annot"><span class="annottext">SSize a
+</span><a href="#local-6989586621679077937"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679077936"><span class="annot"><span class="annottext">SSize b
+</span><a href="#local-6989586621679077936"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="#local-6989586621679077937"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="#local-6989586621679077936"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-147"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="Data.Bytes.Size.html#SB"><span class="hs-identifier hs-var">SB</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="Data.Bytes.Size.html#SB"><span class="hs-identifier hs-var">SB</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a :~: b) -&gt; Maybe (a :~: b)
+forall a. a -&gt; Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">a :~: b
+forall {k} (a :: k). a :~: a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#Refl"><span class="hs-identifier hs-var">Refl</span></a></span><span>
+</span><span id="line-148"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="Data.Bytes.Size.html#SK"><span class="hs-identifier hs-var">SK</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="Data.Bytes.Size.html#SK"><span class="hs-identifier hs-var">SK</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a :~: b) -&gt; Maybe (a :~: b)
+forall a. a -&gt; Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">a :~: b
+forall {k} (a :: k). a :~: a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#Refl"><span class="hs-identifier hs-var">Refl</span></a></span><span>
+</span><span id="line-149"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="Data.Bytes.Size.html#SM"><span class="hs-identifier hs-var">SM</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="Data.Bytes.Size.html#SM"><span class="hs-identifier hs-var">SM</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a :~: b) -&gt; Maybe (a :~: b)
+forall a. a -&gt; Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">a :~: b
+forall {k} (a :: k). a :~: a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#Refl"><span class="hs-identifier hs-var">Refl</span></a></span><span>
+</span><span id="line-150"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="Data.Bytes.Size.html#SG"><span class="hs-identifier hs-var">SG</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="Data.Bytes.Size.html#SG"><span class="hs-identifier hs-var">SG</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a :~: b) -&gt; Maybe (a :~: b)
+forall a. a -&gt; Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">a :~: b
+forall {k} (a :: k). a :~: a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#Refl"><span class="hs-identifier hs-var">Refl</span></a></span><span>
+</span><span id="line-151"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="Data.Bytes.Size.html#ST"><span class="hs-identifier hs-var">ST</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="Data.Bytes.Size.html#ST"><span class="hs-identifier hs-var">ST</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a :~: b) -&gt; Maybe (a :~: b)
+forall a. a -&gt; Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">a :~: b
+forall {k} (a :: k). a :~: a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#Refl"><span class="hs-identifier hs-var">Refl</span></a></span><span>
+</span><span id="line-152"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="Data.Bytes.Size.html#SP"><span class="hs-identifier hs-var">SP</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="Data.Bytes.Size.html#SP"><span class="hs-identifier hs-var">SP</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a :~: b) -&gt; Maybe (a :~: b)
+forall a. a -&gt; Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">a :~: b
+forall {k} (a :: k). a :~: a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#Refl"><span class="hs-identifier hs-var">Refl</span></a></span><span>
+</span><span id="line-153"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="Data.Bytes.Size.html#SE"><span class="hs-identifier hs-var">SE</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="Data.Bytes.Size.html#SE"><span class="hs-identifier hs-var">SE</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a :~: b) -&gt; Maybe (a :~: b)
+forall a. a -&gt; Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">a :~: b
+forall {k} (a :: k). a :~: a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#Refl"><span class="hs-identifier hs-var">Refl</span></a></span><span>
+</span><span id="line-154"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="Data.Bytes.Size.html#SZ"><span class="hs-identifier hs-var">SZ</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="Data.Bytes.Size.html#SZ"><span class="hs-identifier hs-var">SZ</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a :~: b) -&gt; Maybe (a :~: b)
+forall a. a -&gt; Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">a :~: b
+forall {k} (a :: k). a :~: a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#Refl"><span class="hs-identifier hs-var">Refl</span></a></span><span>
+</span><span id="line-155"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SSize a
+</span><a href="Data.Bytes.Size.html#SY"><span class="hs-identifier hs-var">SY</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SSize b
+</span><a href="Data.Bytes.Size.html#SY"><span class="hs-identifier hs-var">SY</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(a :~: b) -&gt; Maybe (a :~: b)
+forall a. a -&gt; Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Just"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">a :~: b
+forall {k} (a :: k). a :~: a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#Refl"><span class="hs-identifier hs-var">Refl</span></a></span><span>
+</span><span id="line-156"></span><span>    </span><span class="annot"><span class="annottext">(SSize a, SSize b)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe (a :~: b)
+forall a. Maybe a
+</span><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Maybe.html#Nothing"><span class="hs-identifier hs-var">Nothing</span></a></span><span>
+</span><span id="line-157"></span><span>  </span><span class="hs-pragma">{-# INLINEABLE</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/Data.Type.Equality.html#testEquality"><span class="hs-pragma hs-type">testEquality</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-158"></span><span>
+</span><span id="line-159"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-160"></span><span id="local-6989586621679077911"><span id="local-6989586621679077913"><span id="local-6989586621679077915"><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679078130"><span class="annot"><a href="#local-6989586621679078130"><span class="hs-keyword hs-type">stock</span></a></span></span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.Show.html#Show"><span class="hs-identifier hs-type">Show</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679078130"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-161"></span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- | Typeclass for recovering the 'Size' at runtime.</span><span>
+</span><span id="line-163"></span><span class="hs-comment">--</span><span>
+</span><span id="line-164"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-165"></span><span class="hs-keyword">type</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/ghc-prim-0.8.0/src/GHC.Types.html#Constraint"><span class="hs-identifier hs-type">Constraint</span></a></span><span>
+</span><span id="line-166"></span><span class="hs-keyword">class</span><span> </span><span id="SingSize"><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-var">SingSize</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679078128"><span class="annot"><a href="#local-6989586621679078128"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-167"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-168"></span><span>  </span><span id="singSize"><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-identifier hs-type">singSize</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679078128"><span class="hs-identifier hs-type">s</span></a></span><span>
+</span><span id="line-169"></span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-171"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#B"><span class="hs-identifier hs-type">B</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-172"></span><span>  </span><span id="local-6989586621679077906"><span class="annot"><span class="annottext">singSize :: SSize 'B
+</span><a href="#local-6989586621679077906"><span class="hs-identifier hs-var hs-var hs-var hs-var">singSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SSize 'B
+</span><a href="Data.Bytes.Size.html#SB"><span class="hs-identifier hs-var">SB</span></a></span><span>
+</span><span id="line-173"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-pragma hs-type">singSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-174"></span><span>
+</span><span id="line-175"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-176"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#K"><span class="hs-identifier hs-type">K</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-177"></span><span>  </span><span id="local-6989586621679077903"><span class="annot"><span class="annottext">singSize :: SSize 'K
+</span><a href="#local-6989586621679077903"><span class="hs-identifier hs-var hs-var hs-var hs-var">singSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SSize 'K
+</span><a href="Data.Bytes.Size.html#SK"><span class="hs-identifier hs-var">SK</span></a></span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-pragma hs-type">singSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-179"></span><span>
+</span><span id="line-180"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-181"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#M"><span class="hs-identifier hs-type">M</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-182"></span><span>  </span><span id="local-6989586621679077900"><span class="annot"><span class="annottext">singSize :: SSize 'M
+</span><a href="#local-6989586621679077900"><span class="hs-identifier hs-var hs-var hs-var hs-var">singSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SSize 'M
+</span><a href="Data.Bytes.Size.html#SM"><span class="hs-identifier hs-var">SM</span></a></span><span>
+</span><span id="line-183"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-pragma hs-type">singSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-184"></span><span>
+</span><span id="line-185"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-186"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#G"><span class="hs-identifier hs-type">G</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-187"></span><span>  </span><span id="local-6989586621679077897"><span class="annot"><span class="annottext">singSize :: SSize 'G
+</span><a href="#local-6989586621679077897"><span class="hs-identifier hs-var hs-var hs-var hs-var">singSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SSize 'G
+</span><a href="Data.Bytes.Size.html#SG"><span class="hs-identifier hs-var">SG</span></a></span><span>
+</span><span id="line-188"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-pragma hs-type">singSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-189"></span><span>
+</span><span id="line-190"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-191"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#T"><span class="hs-identifier hs-type">T</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-192"></span><span>  </span><span id="local-6989586621679077894"><span class="annot"><span class="annottext">singSize :: SSize 'T
+</span><a href="#local-6989586621679077894"><span class="hs-identifier hs-var hs-var hs-var hs-var">singSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SSize 'T
+</span><a href="Data.Bytes.Size.html#ST"><span class="hs-identifier hs-var">ST</span></a></span><span>
+</span><span id="line-193"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-pragma hs-type">singSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-194"></span><span>
+</span><span id="line-195"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-196"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#P"><span class="hs-identifier hs-type">P</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-197"></span><span>  </span><span id="local-6989586621679077891"><span class="annot"><span class="annottext">singSize :: SSize 'P
+</span><a href="#local-6989586621679077891"><span class="hs-identifier hs-var hs-var hs-var hs-var">singSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SSize 'P
+</span><a href="Data.Bytes.Size.html#SP"><span class="hs-identifier hs-var">SP</span></a></span><span>
+</span><span id="line-198"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-pragma hs-type">singSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-199"></span><span>
+</span><span id="line-200"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-201"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#E"><span class="hs-identifier hs-type">E</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-202"></span><span>  </span><span id="local-6989586621679077888"><span class="annot"><span class="annottext">singSize :: SSize 'E
+</span><a href="#local-6989586621679077888"><span class="hs-identifier hs-var hs-var hs-var hs-var">singSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SSize 'E
+</span><a href="Data.Bytes.Size.html#SE"><span class="hs-identifier hs-var">SE</span></a></span><span>
+</span><span id="line-203"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-pragma hs-type">singSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-204"></span><span>
+</span><span id="line-205"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-206"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Z"><span class="hs-identifier hs-type">Z</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-207"></span><span>  </span><span id="local-6989586621679077885"><span class="annot"><span class="annottext">singSize :: SSize 'Z
+</span><a href="#local-6989586621679077885"><span class="hs-identifier hs-var hs-var hs-var hs-var">singSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SSize 'Z
+</span><a href="Data.Bytes.Size.html#SZ"><span class="hs-identifier hs-var">SZ</span></a></span><span>
+</span><span id="line-208"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-pragma hs-type">singSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-209"></span><span>
+</span><span id="line-210"></span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-211"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Y"><span class="hs-identifier hs-type">Y</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-212"></span><span>  </span><span id="local-6989586621679077882"><span class="annot"><span class="annottext">singSize :: SSize 'Y
+</span><a href="#local-6989586621679077882"><span class="hs-identifier hs-var hs-var hs-var hs-var">singSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SSize 'Y
+</span><a href="Data.Bytes.Size.html#SY"><span class="hs-identifier hs-var">SY</span></a></span><span>
+</span><span id="line-213"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#singSize"><span class="hs-pragma hs-type">singSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-214"></span><span>
+</span><span id="line-215"></span><span class="hs-comment">-- | Singleton \&quot;with\&quot;-style convenience function. Allows us to run a</span><span>
+</span><span id="line-216"></span><span class="hs-comment">-- computation @SingSize d =&gt; r@ without explicitly pattern-matching</span><span>
+</span><span id="line-217"></span><span class="hs-comment">-- every time.</span><span>
+</span><span id="line-218"></span><span class="hs-comment">--</span><span>
+</span><span id="line-219"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-220"></span><span id="local-6989586621679078126"><span id="local-6989586621679078127"><span class="annot"><a href="Data.Bytes.Size.html#withSingSize"><span class="hs-identifier hs-type">withSingSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#SSize"><span class="hs-identifier hs-type">SSize</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679078127"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Bytes.Size.html#SingSize"><span class="hs-identifier hs-type">SingSize</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679078127"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679078126"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679078126"><span class="hs-identifier hs-type">r</span></a></span></span></span><span>
+</span><span id="line-221"></span><span id="withSingSize"><span class="annot"><span class="annottext">withSingSize :: forall (s :: Size) r. SSize s -&gt; (SingSize s =&gt; r) -&gt; r
+</span><a href="Data.Bytes.Size.html#withSingSize"><span class="hs-identifier hs-var hs-var">withSingSize</span></a></span></span><span> </span><span id="local-6989586621679077881"><span class="annot"><span class="annottext">SSize s
+</span><a href="#local-6989586621679077881"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span id="local-6989586621679077880"><span class="annot"><span class="annottext">SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">SSize s
+</span><a href="#local-6989586621679077881"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-222"></span><span>  </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SB"><span class="hs-identifier hs-var">SB</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">r
+SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-223"></span><span>  </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SK"><span class="hs-identifier hs-var">SK</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">r
+SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-224"></span><span>  </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SM"><span class="hs-identifier hs-var">SM</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">r
+SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-225"></span><span>  </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SG"><span class="hs-identifier hs-var">SG</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">r
+SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-226"></span><span>  </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#ST"><span class="hs-identifier hs-var">ST</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">r
+SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-227"></span><span>  </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SP"><span class="hs-identifier hs-var">SP</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">r
+SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-228"></span><span>  </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SE"><span class="hs-identifier hs-var">SE</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">r
+SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-229"></span><span>  </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SZ"><span class="hs-identifier hs-var">SZ</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">r
+SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-230"></span><span>  </span><span class="annot"><span class="annottext">SSize s
+</span><a href="Data.Bytes.Size.html#SY"><span class="hs-identifier hs-var">SY</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">r
+SingSize s =&gt; r
+</span><a href="#local-6989586621679077880"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-231"></span><span class="hs-pragma">{-# INLINEABLE</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#withSingSize"><span class="hs-pragma hs-type">withSingSize</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-232"></span><span>
+</span><span id="line-233"></span><span class="hs-comment">-- | Type family that relates units to the next larger one.</span><span>
+</span><span id="line-234"></span><span class="hs-comment">--</span><span>
+</span><span id="line-235"></span><span class="hs-comment">-- ==== __Examples__</span><span>
+</span><span id="line-236"></span><span class="hs-comment">--</span><span>
+</span><span id="line-237"></span><span class="hs-comment">-- &gt;&gt;&gt; :kind! NextSize 'M</span><span>
+</span><span id="line-238"></span><span class="hs-comment">-- NextSize 'M :: Size</span><span>
+</span><span id="line-239"></span><span class="hs-comment">-- = 'G</span><span>
+</span><span id="line-240"></span><span class="hs-comment">--</span><span>
+</span><span id="line-241"></span><span class="hs-comment">-- &gt;&gt;&gt; :kind! NextSize 'Y</span><span>
+</span><span id="line-242"></span><span class="hs-comment">-- NextSize 'Y :: Size</span><span>
+</span><span id="line-243"></span><span class="hs-comment">-- = (TypeError ...)</span><span>
+</span><span id="line-244"></span><span class="hs-comment">--</span><span>
+</span><span id="line-245"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-246"></span><span class="hs-keyword">type</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-type">NextSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span>
+</span><span id="line-247"></span><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">family</span><span> </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679077852"><span class="annot"><a href="#local-6989586621679077852"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679077851"><span class="annot"><a href="#local-6989586621679077851"><span class="hs-identifier hs-type">t</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-248"></span><span>  </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#B"><span class="hs-identifier hs-type">B</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#K"><span class="hs-identifier hs-type">K</span></a></span><span>
+</span><span id="line-249"></span><span>  </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#K"><span class="hs-identifier hs-type">K</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#M"><span class="hs-identifier hs-type">M</span></a></span><span>
+</span><span id="line-250"></span><span>  </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#M"><span class="hs-identifier hs-type">M</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#G"><span class="hs-identifier hs-type">G</span></a></span><span>
+</span><span id="line-251"></span><span>  </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#G"><span class="hs-identifier hs-type">G</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#T"><span class="hs-identifier hs-type">T</span></a></span><span>
+</span><span id="line-252"></span><span>  </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#T"><span class="hs-identifier hs-type">T</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#P"><span class="hs-identifier hs-type">P</span></a></span><span>
+</span><span id="line-253"></span><span>  </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#P"><span class="hs-identifier hs-type">P</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#E"><span class="hs-identifier hs-type">E</span></a></span><span>
+</span><span id="line-254"></span><span>  </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#E"><span class="hs-identifier hs-type">E</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Z"><span class="hs-identifier hs-type">Z</span></a></span><span>
+</span><span id="line-255"></span><span>  </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Z"><span class="hs-identifier hs-type">Z</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Y"><span class="hs-identifier hs-type">Y</span></a></span><span>
+</span><span id="line-256"></span><span>  </span><span id="NextSize"><span class="annot"><a href="Data.Bytes.Size.html#NextSize"><span class="hs-identifier hs-var">NextSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Y"><span class="hs-identifier hs-type">Y</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.TypeLits.html#TypeError"><span class="hs-identifier hs-type">TypeError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">'</span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.TypeLits.html#Text"><span class="hs-identifier hs-type">Text</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;The byte unit Y does not have a 'next size'.&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-257"></span><span>
+</span><span id="line-258"></span><span class="hs-comment">-- | Type family that relates units to the previous smaller one.</span><span>
+</span><span id="line-259"></span><span class="hs-comment">--</span><span>
+</span><span id="line-260"></span><span class="hs-comment">-- ==== __Examples__</span><span>
+</span><span id="line-261"></span><span class="hs-comment">--</span><span>
+</span><span id="line-262"></span><span class="hs-comment">-- &gt;&gt;&gt; :kind! PrevSize 'M</span><span>
+</span><span id="line-263"></span><span class="hs-comment">-- PrevSize 'M :: Size</span><span>
+</span><span id="line-264"></span><span class="hs-comment">-- = 'K</span><span>
+</span><span id="line-265"></span><span class="hs-comment">--</span><span>
+</span><span id="line-266"></span><span class="hs-comment">-- &gt;&gt;&gt; :kind! PrevSize 'B</span><span>
+</span><span id="line-267"></span><span class="hs-comment">-- PrevSize 'B :: Size</span><span>
+</span><span id="line-268"></span><span class="hs-comment">-- = (TypeError ...)</span><span>
+</span><span id="line-269"></span><span class="hs-comment">--</span><span>
+</span><span id="line-270"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-271"></span><span class="hs-keyword">type</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-type">PrevSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span>
+</span><span id="line-272"></span><span class="hs-keyword">type</span><span> </span><span class="hs-keyword">family</span><span> </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679077850"><span class="annot"><a href="#local-6989586621679077850"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679077849"><span class="annot"><a href="#local-6989586621679077849"><span class="hs-identifier hs-type">t</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-273"></span><span>  </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#B"><span class="hs-identifier hs-type">B</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.TypeLits.html#TypeError"><span class="hs-identifier hs-type">TypeError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">'</span><span class="annot"><a href="file:///nix/store/16s6s6gbs6bxf3x75xpna03ygn755wig-ghc-9.2.3-doc/share/doc/ghc/html/libraries/base-4.16.2.0/src/GHC.TypeLits.html#Text"><span class="hs-identifier hs-type">Text</span></a></span><span> </span><span class="annot"><span class="hs-string">&quot;The byte unit B does not have a 'previous size'.&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-274"></span><span>  </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#K"><span class="hs-identifier hs-type">K</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#B"><span class="hs-identifier hs-type">B</span></a></span><span>
+</span><span id="line-275"></span><span>  </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#M"><span class="hs-identifier hs-type">M</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#K"><span class="hs-identifier hs-type">K</span></a></span><span>
+</span><span id="line-276"></span><span>  </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#G"><span class="hs-identifier hs-type">G</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#M"><span class="hs-identifier hs-type">M</span></a></span><span>
+</span><span id="line-277"></span><span>  </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#T"><span class="hs-identifier hs-type">T</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#G"><span class="hs-identifier hs-type">G</span></a></span><span>
+</span><span id="line-278"></span><span>  </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#P"><span class="hs-identifier hs-type">P</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#T"><span class="hs-identifier hs-type">T</span></a></span><span>
+</span><span id="line-279"></span><span>  </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#E"><span class="hs-identifier hs-type">E</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#P"><span class="hs-identifier hs-type">P</span></a></span><span>
+</span><span id="line-280"></span><span>  </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Z"><span class="hs-identifier hs-type">Z</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#E"><span class="hs-identifier hs-type">E</span></a></span><span>
+</span><span id="line-281"></span><span>  </span><span id="PrevSize"><span class="annot"><a href="Data.Bytes.Size.html#PrevSize"><span class="hs-identifier hs-var">PrevSize</span></a></span></span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Y"><span class="hs-identifier hs-type">Y</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Z"><span class="hs-identifier hs-type">Z</span></a></span><span>
+</span><span id="line-282"></span><span>
+</span><span id="line-283"></span><span class="hs-comment">-- | Types that have a size.</span><span>
+</span><span id="line-284"></span><span class="hs-comment">--</span><span>
+</span><span id="line-285"></span><span class="hs-comment">-- ==== __Examples__</span><span>
+</span><span id="line-286"></span><span class="hs-comment">--</span><span>
+</span><span id="line-287"></span><span class="hs-comment">-- &gt;&gt;&gt; import Data.Bytes</span><span>
+</span><span id="line-288"></span><span class="hs-comment">-- &gt;&gt;&gt; sizeOf (MkBytes @G 7)</span><span>
+</span><span id="line-289"></span><span class="hs-comment">-- G</span><span>
+</span><span id="line-290"></span><span class="hs-comment">--</span><span>
+</span><span id="line-291"></span><span class="hs-comment">-- &gt;&gt;&gt; sizeOf (hideSize $ MkBytes @M 7)</span><span>
+</span><span id="line-292"></span><span class="hs-comment">-- M</span><span>
+</span><span id="line-293"></span><span class="hs-comment">--</span><span>
+</span><span id="line-294"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-295"></span><span class="hs-keyword">class</span><span> </span><span id="Sized"><span class="annot"><a href="Data.Bytes.Size.html#Sized"><span class="hs-identifier hs-var">Sized</span></a></span></span><span> </span><span id="local-6989586621679077848"><span class="annot"><a href="#local-6989586621679077848"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-296"></span><span>  </span><span class="hs-comment">-- | Retrieves the size.</span><span>
+</span><span id="line-297"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-298"></span><span>  </span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-299"></span><span>  </span><span id="sizeOf"><span class="annot"><a href="Data.Bytes.Size.html#sizeOf"><span class="hs-identifier hs-type">sizeOf</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679077848"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Bytes.Size.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span>
+</span><span id="line-300"></span></pre></body></html>

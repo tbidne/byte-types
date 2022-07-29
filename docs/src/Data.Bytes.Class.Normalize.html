@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | Provides the 'Normalize' typeclass.</span><span>
+</span><span id="line-2"></span><span class="hs-comment">--</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Bytes.Class.Normalize</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Data.Bytes.Class.Normalize.html#Normalize"><span class="hs-identifier">Normalize</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-comment">-- $setup</span><span>
+</span><span id="line-10"></span><span class="hs-comment">-- &gt;&gt;&gt; import Data.Bytes (Bytes (..), SomeSize (..), hideSize)</span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- &gt;&gt;&gt; import Data.Bytes.Size (Size (..))</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- | Used for normalizing bytes @b@ such that</span><span>
+</span><span id="line-14"></span><span class="hs-comment">--</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- \[</span><span>
+</span><span id="line-16"></span><span class="hs-comment">--  1 \le \text{normalize}(b) &lt; 1000 \iff 1\text{ B} \le b &lt; 1000\text{ Y}.</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- \]</span><span>
+</span><span id="line-18"></span><span class="hs-comment">--</span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- In the strictest sense, \(\textrm{normalize} : \mathcal{C} \rightarrow \mathcal{C}\)</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- is not a homomorphism, as the combination of two normalized values may</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- itself not be normalized.</span><span>
+</span><span id="line-22"></span><span class="hs-comment">--</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- However, because the normalized units varies with the value, @normalize@</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- always returns a type that existentially quantifies the size</span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- (e.g. 'Data.Bytes.SomeSize'). 'Eq' for these types is defined in</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- terms of an equivalence class that takes units into account e.g.</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- @1 P = 1,000 T = 1,000,000 G ...@. Viewed this way, @normalize@ is actually</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- an /isomorphism/, as it is essentially a no-op, never leaving the</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- equivalence class.</span><span>
+</span><span id="line-30"></span><span class="hs-comment">--</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- This means we can happily mix normalization with different functions</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- without worrying about the order. The only requirement we have is that</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- such functions respect substitution:</span><span>
+</span><span id="line-34"></span><span class="hs-comment">--</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- \[ x = y \implies f(x) = f(y). \]</span><span>
+</span><span id="line-36"></span><span class="hs-comment">--</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- This is certainly true for all the usual mathematical operations we would</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- normally use, e.g., 'Numeric.Algebra.Additive.AGroup.AGroup' addition,</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- 'Numeric.Algebra.Module' scalar multiplication. On</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- the other hand, any functions that inspect the underlying numeric value or</span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- Bytes types could easily break this law. As such they should be treated</span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- with suspicion, at least when used in conjunction with 'normalize'.</span><span>
+</span><span id="line-43"></span><span class="hs-comment">--</span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- The other consideration we must keep in mind is that the final result of a</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- series of computations may not be normalized. If this is desired, then</span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- 'normalize' should be the /last/ operation performed. Using 'normalize' in</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- the middle would not cause any harm (other than, perhaps, impacting</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- efficiency), but it would not guarantee the final result is normalized.</span><span>
+</span><span id="line-49"></span><span class="hs-comment">--</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- ==== __Examples__</span><span>
+</span><span id="line-51"></span><span class="hs-comment">--</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- &gt;&gt;&gt; let bytes = MkBytes 5000 :: Bytes 'M Int</span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- &gt;&gt;&gt; normalize bytes</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- MkSomeSize SG (MkBytes 5)</span><span>
+</span><span id="line-55"></span><span class="hs-comment">--</span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- &gt;&gt;&gt; let bytes = hideSize (MkBytes 0.01 :: Bytes 'T Float)</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- &gt;&gt;&gt; normalize bytes</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- MkSomeSize SG (MkBytes 10.0)</span><span>
+</span><span id="line-59"></span><span class="hs-comment">--</span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- @since 0.1</span><span>
+</span><span id="line-61"></span><span class="hs-keyword">class</span><span> </span><span id="Normalize"><span class="annot"><a href="Data.Bytes.Class.Normalize.html#Normalize"><span class="hs-identifier hs-var">Normalize</span></a></span></span><span> </span><span id="local-6989586621679077215"><span class="annot"><a href="#local-6989586621679077215"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Norm"><span class="annot"><a href="Data.Bytes.Class.Normalize.html#Norm"><span class="hs-identifier hs-var">Norm</span></a></span></span><span> </span><span id="local-6989586621679077215"><span class="annot"><a href="#local-6989586621679077215"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-comment">-- | @since 0.1</span><span>
+</span><span id="line-66"></span><span>  </span><span id="normalize"><span class="annot"><a href="Data.Bytes.Class.Normalize.html#normalize"><span class="hs-identifier hs-type">normalize</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679077215"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Bytes.Class.Normalize.html#Norm"><span class="hs-identifier hs-type">Norm</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077215"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-67"></span></pre></body></html>
